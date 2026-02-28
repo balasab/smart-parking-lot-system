@@ -2,75 +2,81 @@ import { ParkingLotManager } from './services/ParkingLotManager.js';
 import { ParkingSpot } from './models/ParkingSpot.js';
 import { ParkingSpotType, VehicleType } from './models/types.js';
 import { Motorcycle, Car, Bus } from './models/Vehicle.js';
+import { EntryGate, ExitGate } from './models/Gate.js';
+import { Floor } from './models/Floor.js';
+import { ParkingLot } from './models/ParkingLot.js';
+import { DisplayBoard } from './services/Observer.js';
 
 async function main() {
     const manager = ParkingLotManager.getInstance();
 
-    // Initialize with some spots
-    const spots: ParkingSpot[] = [
-        new ParkingSpot('S1', ParkingSpotType.SMALL, 1),
-        new ParkingSpot('M1', ParkingSpotType.MEDIUM, 1),
-        new ParkingSpot('L1', ParkingSpotType.LARGE, 1),
-        new ParkingSpot('M2', ParkingSpotType.MEDIUM, 2),
+    // Initialize with 2 floors
+    const floor1Spots = [
+        new ParkingSpot('F1-S1', ParkingSpotType.SMALL, 1),
+        new ParkingSpot('F1-M1', ParkingSpotType.MEDIUM, 1),
+        new ParkingSpot('F1-L1', ParkingSpotType.LARGE, 1),
     ];
-    manager.initialize(spots);
+    const floor2Spots = [
+        new ParkingSpot('F2-S1', ParkingSpotType.SMALL, 2),
+        new ParkingSpot('F2-M1', ParkingSpotType.MEDIUM, 2),
+    ];
 
-    // Mock vehicle type storage for demo purposes
-    (global as any).vehicleTypeMap = {
-        'ABC-123': VehicleType.MOTORCYCLE,
-        'XYZ-789': VehicleType.CAR,
-        'BIG-BUS-1': VehicleType.BUS,
-    };
+    const floors = [
+        new Floor(1, floor1Spots),
+        new Floor(2, floor2Spots)
+    ];
+
+    const gates = [
+        new EntryGate('ENTRY-1'),
+        new EntryGate('ENTRY-2'),
+        new ExitGate('EXIT-1')
+    ];
+
+    const parkingLot = new ParkingLot('Urban Parking', floors, gates);
+    manager.initialize(parkingLot);
+
+    // Add a real-time display board
+    const board = new DisplayBoard('MAIN-BOARD');
+    manager.addObserver(board);
 
     console.log(`Initial Available Spots: ${manager.getAvailableSpotsCount()}`);
+    console.log(`Floor 1 Availability: ${manager.getFloorAvailability(1)}`);
+    console.log(`Floor 2 Availability: ${manager.getFloorAvailability(2)}`);
 
     // Check-in
+    console.log('\n--- Checking In ---');
     const v1 = new Motorcycle('ABC-123');
-    const t1 = await manager.checkIn(v1);
+    const t1 = await manager.checkIn(v1, 'ENTRY-1');
 
     const v2 = new Car('XYZ-789');
-    const t2 = await manager.checkIn(v2);
+    const t2 = await manager.checkIn(v2, 'ENTRY-2');
 
     const v3 = new Bus('BIG-BUS-1');
-    const t3 = await manager.checkIn(v3);
+    const t3 = await manager.checkIn(v3, 'ENTRY-1');
 
     console.log(`Available Spots after 3 check-ins: ${manager.getAvailableSpotsCount()}`);
-
-    // Attempt to check-in another Bus (no large spots left)
-    const v4 = new Bus('BIG-BUS-2');
-    await manager.checkIn(v4);
-
-    // Concurrency test: Multiple simultaneous entries
-    console.log('\n--- Simulating Concurrent Check-ins ---');
-    const v5 = new Car('CONC-1');
-    const v6 = new Car('CONC-2');
-    (global as any).vehicleTypeMap['CONC-1'] = VehicleType.CAR;
-    (global as any).vehicleTypeMap['CONC-2'] = VehicleType.CAR;
-
-    const [tr1, tr2] = await Promise.all([
-        manager.checkIn(v5),
-        manager.checkIn(v6)
-    ]);
-    console.log(`Concurrent results: ${tr1 ? 'Success' : 'Failed'}, ${tr2 ? 'Success' : 'Failed'}`);
-    console.log(`Available Spots now: ${manager.getAvailableSpotsCount()}`);
+    console.log(`Floor 1 Availability: ${manager.getFloorAvailability(1)}`);
+    console.log(`Floor 2 Availability: ${manager.getFloorAvailability(2)}`);
 
     // Check-out
     console.log('\n--- Checking Out ---');
     if (t1) {
         // Fast forward 2 hours for fee demo
         const entryTime = t1.getEntryTime();
-        t1['entryTime'] = new Date(entryTime.getTime() - (2 * 60 * 60 * 1000));
-        await manager.checkOut(t1.getId());
+        (t1 as any).entryTime = new Date(entryTime.getTime() - (2 * 60 * 60 * 1000));
+        await manager.checkOut(t1.getId(), 'EXIT-1');
     }
 
     if (t2) {
         // Fast forward 5 hours for fee demo
         const entryTime = t2.getEntryTime();
-        t2['entryTime'] = new Date(entryTime.getTime() - (5 * 60 * 60 * 1000));
-        await manager.checkOut(t2.getId());
+        (t2 as any).entryTime = new Date(entryTime.getTime() - (5 * 60 * 60 * 1000));
+        await manager.checkOut(t2.getId(), 'EXIT-1');
     }
 
     console.log(`Final Available Spots: ${manager.getAvailableSpotsCount()}`);
+    console.log(`Floor 1 Availability: ${manager.getFloorAvailability(1)}`);
+    console.log(`Floor 2 Availability: ${manager.getFloorAvailability(2)}`);
 }
 
 main().catch(console.error);

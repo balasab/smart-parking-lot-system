@@ -1,17 +1,19 @@
-import { ParkingTicketStatus } from './types.js';
+import { ParkingTicketStatus, VehicleType } from './types.js';
 
 export class ParkingTicket {
     private id: string;
     private vehicleLicensePlate: string;
+    private vehicleType: VehicleType;
     private spotId: string;
     private entryTime: Date;
     private exitTime?: Date;
     private fee?: number;
     private status: ParkingTicketStatus;
 
-    constructor(id: string, vehicleLicensePlate: string, spotId: string) {
+    constructor(id: string, vehicleLicensePlate: string, vehicleType: VehicleType, spotId: string) {
         this.id = id;
         this.vehicleLicensePlate = vehicleLicensePlate;
+        this.vehicleType = vehicleType;
         this.spotId = spotId;
         this.entryTime = new Date();
         this.status = ParkingTicketStatus.ACTIVE;
@@ -29,6 +31,10 @@ export class ParkingTicket {
 
     public getVehicleLicensePlate(): string {
         return this.vehicleLicensePlate;
+    }
+
+    public getVehicleType(): VehicleType {
+        return this.vehicleType;
     }
 
     public getSpotId(): string {
